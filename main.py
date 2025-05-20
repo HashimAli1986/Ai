@@ -44,4 +44,14 @@ async def main():
 
 if __name__ == '__main__':
     import asyncio
-    asyncio.run(main())
+
+    async def run_bot():
+        app = Application.builder().token(BOT_TOKEN).build()
+        app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+        print("البوت شغال يا ذيبان...")
+        await app.initialize()
+        await app.start()
+        await app.updater.start_polling()
+        await app.updater.idle()
+
+    asyncio.run(run_bot())
