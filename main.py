@@ -47,6 +47,12 @@ async def main():
     print("البوت شغال يا ذيبان...")
     await app.run_polling()
 
+# حلقة التشغيل الآمنة متوافقة مع Render
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except RuntimeError:
+        import nest_asyncio
+        nest_asyncio.apply()
+        asyncio.get_event_loop().run_until_complete(main())
