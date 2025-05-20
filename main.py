@@ -1,57 +1,56 @@
+import os
 import logging
-import requests
-from telegram import Update, Bot
+from openai import AsyncOpenAI
+from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
-import openai
+# تحميل المتغيرات من ملف .env
+OPENAI_KEY = os.getenv("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")
+BOT_TOKEN = os.getenv("7560392852:AAGNoxFGThp04qMKTGEiIJN2eY_cahTv3E8")
 
-# مفتاح OpenAI
-openai.api_key = "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"
-
-# توكن بوت تيليجرام
-BOT_TOKEN = "7560392852:AAGNoxFGThp04qMKTGEiIJN2eY_cahTv3E8"
-
-# إعداد اللوغ
+# إعداد اللوغات
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
+logger = logging.getLogger(__name__)
 
-# دالة توليد الرد باستخدام ChatGPT
+# عميل OpenAI المتزامن
+openai_client = AsyncOpenAI(api_key=OPENAI_KEY)
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
+    user_id = update.effective_user.id
+
+    # التحقق من طول الرسالة
+    if len(user_message) > 500:
+        await update.message.reply_text("❗ الرجاء إرسال رسالة لا تتجاوز 500 حرف.")
+        return
+
+    logger.info(f"المستخدم {user_id} سأل: {user_message[:100]}...")
 
     try:
-        response = openai.ChatCompletion.create(
+        # إرسال الطلب إلى OpenAI
+        response = await openai_client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "أنت مساعد مالي ذكي متخصص في تحليل الأسهم وتقديم توصيات تداول بناءً على البيانات الفنية."},
+                {"role": "system", "content": "أنت مساعد مالي خبير في تحليل الأسهم وتوصيات التداول."},
                 {"role": "user", "content": user_message}
             ]
         )
-        reply = response['choices'][0]['message']['content']
+        reply = response.choices[0].message.content
+        
     except Exception as e:
-        reply = f"حدث خطأ أثناء الاتصال بـ GPT: {str(e)}"
+        logger.error(f"خطأ للمستخدم {user_id}: {e}")
+        reply = "حدث خطأ تقني. يرجى المحاولة مرة أخرى لاحقًا."
 
     await update.message.reply_text(reply)
 
-# تشغيل البوت
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    print("البوت شغال يا ذيبان...")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     await app.run_polling()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import asyncio
-
-    async def run_bot():
-        app = Application.builder().token(BOT_TOKEN).build()
-        app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-        print("البوت شغال يا ذيبان...")
-        await app.initialize()
-        await app.start()
-        await app.updater.start_polling()
-        await app.updater.idle()
-
-    asyncio.run(run_bot())
+    asyncio.run(main())
