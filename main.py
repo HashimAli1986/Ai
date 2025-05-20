@@ -51,7 +51,11 @@ async def main():
 
 # حلقة التشغيل الآمن
 if __name__ == "__main__":
+    import nest_asyncio
+    nest_asyncio.apply()
+
+    loop = asyncio.get_event_loop()
     try:
-        asyncio.run(main())
+        loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("تم إيقاف البوت.")
